@@ -1,0 +1,102 @@
+{
+  "project_name": "HostNesia",
+  "app_type": "mobile_web_app / hybrid_fullstack",
+  "theme": "light",
+  "design_philosophy": {
+    "concept": "Hybrid Headless Panel",
+    "description": "A 'Super App' mobile-first hosting dashboard replacing traditional cPanel UI with native quick actions, while maintaining SSO links and an escape hatch for power users.",
+    "inspiration": ["Spaceship.com", "Hostinger.com hPanel"],
+    "rounding": "rounded-2xl for major surfaces, rounded-xl for interactive elements",
+    "spacing": "Generous whitespace (p-6, p-8) to reduce cognitive load"
+  },
+  "typography": {
+    "primary_font": "Manrope, sans-serif",
+    "body_font": "Plus Jakarta Sans, sans-serif",
+    "rules": {
+      "headings": "Manrope with tracking-tight. Avoid Inter for headings.",
+      "body": "Plus Jakarta Sans, tracking-normal, readable.",
+      "text_color": "Use slate-800 (#1e293b) for primary text, slate-500 (#64748b) for secondary."
+    }
+  },
+  "colors": {
+    "primary": "#166db4",
+    "primary_hover": "#125a96",
+    "primary_light": "#e8f3fb",
+    "background": "#f8fafc",
+    "surface": "#ffffff",
+    "text_main": "#1e293b",
+    "text_muted": "#64748b",
+    "status": {
+      "active": "#10b981",
+      "suspended": "#ef4444",
+      "unpaid": "#f59e0b",
+      "paid": "#10b981"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": "Soft ambient shadows. shadow-[0_8px_30px_rgb(0,0,0,0.04)] for cards.",
+    "borders": "1px solid slate-200 (border-slate-200) to define card edges cleanly.",
+    "icons": "Use Phosphor Icons (or lucide-react) strictly in #166db4 (primary color) or slate-500 depending on state."
+  },
+  "layouts": {
+    "mobile": {
+      "navigation": "Fixed Bottom Bar (bottom-0, w-full, h-16 or h-20, bg-white, border-t border-slate-100).",
+      "fab": "Central Floating Action Button (+), elevated above bottom bar (-translate-y-6), bg-[#166db4], shadow-lg, rounded-full.",
+      "dashboard_services": "Horizontal swipeable carousel. overflow-x-auto, snap-x, snap-mandatory, hide scrollbar. Cards take 85vw.",
+      "quick_actions_panel": "Bottom Sheet (slide up modal) triggered by FAB. Contains a 2-column grid of quick actions."
+    },
+    "desktop": {
+      "navigation": "Ramping Left Sidebar (w-64, hidden on mobile).",
+      "top_header": "Includes Quick Actions dropdown (+ button), Profile, Wallet summary.",
+      "dashboard_services": "Responsive Grid (grid-cols-2 or grid-cols-3)."
+    }
+  },
+  "components": {
+    "wallet_card": {
+      "style": "Gradient bg from primary to primary-dark or solid white with primary text. Displays greeting and balance.",
+      "action": "Top-up button."
+    },
+    "service_card": {
+      "style": "rounded-2xl, p-6, border border-slate-200, bg-white.",
+      "content": "Domain name, Status badge (Active/Suspended), Disk usage progress bar (h-2, rounded-full, bg-slate-100, indicator bg-primary)."
+    },
+    "quick_action_button": {
+      "style": "Flex column, centered, rounded-xl p-4 bg-slate-50 hover:bg-primary/5, text-primary. Icon + Label."
+    },
+    "unpaid_alert": {
+      "style": "Banner/Card with bg-amber-50, border border-amber-200, text-amber-800. Prominent 'Pay Now' button."
+    },
+    "cpanel_escape_hatch": {
+      "style": "Outline button (border-slate-300 text-slate-600 hover:bg-slate-50), subtle placement to not distract from native UI."
+    }
+  },
+  "data_schema": {
+    "users": [
+      { "id": 1, "nama": "Budi Santoso", "email": "budi@example.com", "saldo_kredit": 1500000 }
+    ],
+    "services": [
+      { "id": 101, "user_id": 1, "nama_produk": "Cloud Hosting Startup", "domain": "budistore.id", "status": "Active", "persentase_penggunaan_disk": 45, "tanggal_jatuh_tempo_selanjutnya": "2026-12-01" },
+      { "id": 102, "user_id": 1, "nama_produk": "VPS KVM 2GB", "domain": "app.budistore.id", "status": "Active", "persentase_penggunaan_disk": 80, "tanggal_jatuh_tempo_selanjutnya": "2026-10-15" }
+    ],
+    "invoices": [
+      { "id": "INV-20260701", "jumlah_tagihan": 250000, "status": "Unpaid", "tanggal_jatuh_tempo": "2026-08-01" },
+      { "id": "INV-20260601", "jumlah_tagihan": 250000, "status": "Paid", "tanggal_jatuh_tempo": "2026-07-01" }
+    ]
+  },
+  "motion": {
+    "fab_click": "Scale down slightly on press.",
+    "bottom_sheet": "Slide up from bottom (Framer Motion: initial {y: '100%'}, animate {y: 0}).",
+    "carousel": "Smooth scroll snapping."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You MUST construct the UI to strictly differentiate mobile and desktop layouts (using standard Tailwind sm/md/lg breakpoints).",
+    "Do NOT use complete transparent backgrounds for elements that scroll over content.",
+    "All interactive elements must include a data-testid attribute in kebab-case (e.g., data-testid='fab-button').",
+    "Ensure 'Swipeable services carousel' uses native CSS snap points for mobile.",
+    "Use Phosphor Icons (or lucide-react) colored #166db4.",
+    "Mock the SSO redirects (File Manager, phpMyAdmin) and cPanel Escape Hatch with a simple Toast notification or fake loading state rather than real navigation.",
+    "Do not use generic centered layouts. Left-align text content, center-align icons in grid blocks where appropriate.",
+    "Make buttons pill-shaped or rounded-xl.",
+    "Since the project uses .js files, ensure component code is provided in Javascript not Typescript."
+  ]
+}
