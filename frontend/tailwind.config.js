@@ -7,12 +7,21 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        heading: ['Manrope', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
       },
       colors: {
+        brand: {
+          DEFAULT: '#166db4',
+          dark: '#125a96',
+          light: '#e8f3fb',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -54,22 +63,18 @@ module.exports = {
           '5': 'hsl(var(--chart-5))'
         }
       },
+      boxShadow: {
+        soft: '0 8px 30px rgb(0 0 0 / 0.05)',
+        card: '0 4px 20px rgb(22 109 180 / 0.06)',
+      },
       keyframes: {
         'accordion-down': {
-          from: {
-            height: '0'
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)'
-          }
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' }
         },
         'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)'
-          },
-          to: {
-            height: '0'
-          }
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' }
         }
       },
       animation: {
