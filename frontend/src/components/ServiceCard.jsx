@@ -1,4 +1,5 @@
 import { Globe, HardDrive, CalendarClock, ExternalLink, KeyRound } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { dateID } from "@/lib/format";
 import { useQuickActions } from "@/context/QuickActionsContext";
 
@@ -18,6 +19,7 @@ function StatusBadge({ status }) {
 
 export default function ServiceCard({ service }) {
   const { runSso } = useQuickActions();
+  const navigate = useNavigate();
   const disk = service.persentase_penggunaan_disk;
   const high = disk >= 85;
 
@@ -27,15 +29,19 @@ export default function ServiceCard({ service }) {
       data-testid={`service-card-${service.id}`}
     >
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(`/layanan/${service.id}`)}
+          className="flex items-center gap-3 text-left"
+          data-testid={`service-detail-link-${service.id}`}
+        >
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-light text-brand">
             <Globe className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-heading text-base font-bold leading-tight text-slate-800">{service.domain}</p>
+            <p className="font-heading text-base font-bold leading-tight text-slate-800 hover:text-brand">{service.domain}</p>
             <p className="text-xs text-slate-400">{service.nama_produk}</p>
           </div>
-        </div>
+        </button>
         <StatusBadge status={service.status} />
       </div>
 

@@ -6,13 +6,15 @@ const QuickActionsContext = createContext(null);
 export function QuickActionsProvider({ children }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeForm, setActiveForm] = useState(null); // 'order' | 'dns' | 'email'
+  const [formPayload, setFormPayload] = useState(null);
   const [sso, setSso] = useState(null); // { label }
 
   const openSheet = () => setSheetOpen(true);
   const closeSheet = () => setSheetOpen(false);
 
-  const openForm = (name) => {
+  const openForm = (name, payload = null) => {
     setSheetOpen(false);
+    setFormPayload(payload);
     setActiveForm(name);
   };
   const closeForm = () => setActiveForm(null);
@@ -29,7 +31,7 @@ export function QuickActionsProvider({ children }) {
 
   return (
     <QuickActionsContext.Provider
-      value={{ sheetOpen, openSheet, closeSheet, activeForm, openForm, closeForm, sso, runSso }}
+      value={{ sheetOpen, openSheet, closeSheet, activeForm, formPayload, openForm, closeForm, sso, runSso }}
     >
       {children}
     </QuickActionsContext.Provider>

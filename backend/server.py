@@ -5,7 +5,7 @@ import os
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, Response
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
@@ -16,6 +16,7 @@ import uuid
 import jwt
 import bcrypt
 from bson import ObjectId
+from fpdf import FPDF
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -182,6 +183,25 @@ async def seed():
              "deskripsi": "Pembayaran INV-20260601", "created_at": "2026-06-01T09:10:00+00:00"},
         ])
 
+    if await db.dns_records.count_documents({"user_id": user_id}) == 0:
+        svc = await db.services.find_one({"user_id": user_id, "domain": "budistore.id"})
+        if svc:
+            sid = svc["id"]
+            await db.dns_records.insert_many([
+                {"id": str(uuid.uuid4()), "user_id": user_id, "service_id": sid, "type": "A", "name": "@", "value": "103.171.44.12", "ttl": 3600, "created_at": "2025-12-01T00:00:00+00:00"},
+                {"id": str(uuid.uuid4()), "user_id": user_id, "service_id": sid, "type": "CNAME", "name": "www", "value": "budistore.id", "ttl": 3600, "created_at": "2025-12-01T00:00:00+00:00"},
+                {"id": str(uuid.uuid4()), "user_id": user_id, "service_id": sid, "type": "MX", "name": "@", "value": "mail.budistore.id", "ttl": 3600, "created_at": "2025-12-01T00:00:00+00:00"},
+                {"id": str(uuid.uuid4()), "user_id": user_id, "service_id": sid, "type": "TXT", "name": "@", "value": "v=spf1 include:_spf.hostnesia.id ~all", "ttl": 3600, "created_at": "2025-12-01T00:00:00+00:00"},
+            ])
+
+    if await db.email_accounts.count_documents({"user_id": user_id}) == 0:
+        svc = await db.services.find_one({"user_id": user_id, "domain": "budistore.id"})
+        if svc:
+            await db.email_accounts.insert_many([
+                {"id": str(uuid.uuid4()), "user_id": user_id, "service_id": svc["id"], "email": "admin@budistore.id", "quota": 2048, "used": 340, "created_at": "2025-12-02T00:00:00+00:00"},
+                {"id": str(uuid.uuid4()), "user_id": user_id, "service_id": svc["id"], "email": "info@budistore.id", "quota": 1024, "used": 120, "created_at": "2025-12-05T00:00:00+00:00"},
+            ])
+
     creds = ROOT_DIR.parent / "memory" / "test_credentials.md"
     try:
         creds.write_text(
@@ -318,10 +338,170 @@ async def create_email(service_id: str, payload: EmailInput, user: dict = Depend
         raise HTTPException(status_code=404, detail="Layanan tidak ditemukan")
     address = f"{payload.username.strip()}@{svc['domain']}"
     account = {"id": str(uuid.uuid4()), "user_id": uid, "service_id": service_id, "email": address,
-               "quota": payload.quota, "created_at": datetime.now(timezone.utc).isoformat()}
+               "quota": payload.quota, "used": 0, "created_at": datetime.now(timezone.utc).isoformat()}
     await db.email_accounts.insert_one(dict(account))
     account.pop("_id", None)
     return {"message": f"Akun email {address} berhasil dibuat", "account": account}
+
+# ---------------------------------------------------------------------------
+# Service detail, notifications, PDF
+# ---------------------------------------------------------------------------
+def format_rupiah(n) -> str:
+    return f"{int(n):,}".replace(",", ".")
+
+def _days_until(date_str):
+    if not date_str:
+        return None
+    try:
+        d = datetime.fromisoformat(str(date_str).replace("Z", "+00:00")).date()
+    except Exception:
+        try:
+            d = datetime.strptime(str(date_str)[:10], "%Y-%m-%d").date()
+        except Exception:
+            return None
+    return (d - datetime.now(timezone.utc).date()).days
+
+def _compute_ssl(service: dict) -> dict:
+    active = service.get("status") == "Active"
+    return {
+        "status": "Active" if active else "Expired",
+        "issuer": "Let's Encrypt",
+        "valid_until": service.get("tanggal_jatuh_tempo_selanjutnya"),
+        "auto_renew": active,
+    }
+
+def _mock_backups() -> list:
+    today = datetime.now(timezone.utc).date()
+    sizes = ["1.24 GB", "1.19 GB", "1.21 GB"]
+    return [
+        {"id": str(uuid.uuid4()), "date": (today - timedelta(days=i)).isoformat(),
+         "size": sizes[i - 1], "type": "Otomatis (Harian)"}
+        for i in range(1, 4)
+    ]
+
+@api_router.get("/services/{service_id}")
+async def service_detail(service_id: str, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    svc = await db.services.find_one({"id": service_id, "user_id": uid}, {"_id": 0})
+    if not svc:
+        raise HTTPException(status_code=404, detail="Layanan tidak ditemukan")
+    svc["dns_records"] = await db.dns_records.find({"service_id": service_id, "user_id": uid}, {"_id": 0}).to_list(200)
+    svc["email_accounts"] = await db.email_accounts.find({"service_id": service_id, "user_id": uid}, {"_id": 0}).to_list(200)
+    svc["ssl"] = _compute_ssl(svc)
+    svc["backups"] = _mock_backups()
+    return svc
+
+@api_router.post("/services/{service_id}/backup")
+async def create_backup(service_id: str, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    svc = await db.services.find_one({"id": service_id, "user_id": uid})
+    if not svc:
+        raise HTTPException(status_code=404, detail="Layanan tidak ditemukan")
+    return {"message": "Backup baru berhasil dibuat",
+            "backup": {"id": str(uuid.uuid4()), "date": datetime.now(timezone.utc).date().isoformat(),
+                       "size": "1.26 GB", "type": "Manual"}}
+
+@api_router.get("/notifications")
+async def notifications(user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    items = []
+    for inv in await db.invoices.find({"user_id": uid, "status": "Unpaid"}, {"_id": 0}).to_list(200):
+        d = _days_until(inv.get("tanggal_jatuh_tempo"))
+        overdue = d is not None and d < 0
+        when = f"telat {abs(d)} hari" if overdue else (f"jatuh tempo {d} hari lagi" if d is not None else "")
+        items.append({"id": "inv-" + inv["id"], "type": "invoice",
+                      "severity": "danger" if overdue else "warning",
+                      "title": "Tagihan belum dibayar",
+                      "message": f"{inv['id']} sebesar Rp {format_rupiah(inv['jumlah_tagihan'])} {when}".strip()})
+    for s in await db.services.find({"user_id": uid}, {"_id": 0}).to_list(200):
+        if s.get("persentase_penggunaan_disk", 0) >= 85:
+            items.append({"id": "disk-" + s["id"], "type": "disk", "severity": "danger",
+                          "title": "Penggunaan disk tinggi",
+                          "message": f"{s['domain']} sudah {s['persentase_penggunaan_disk']}% penuh"})
+        d = _days_until(s.get("tanggal_jatuh_tempo_selanjutnya"))
+        if d is not None and 0 <= d <= 14:
+            items.append({"id": "ren-" + s["id"], "type": "renewal", "severity": "warning",
+                          "title": "Layanan akan jatuh tempo",
+                          "message": f"{s['domain']} jatuh tempo {d} hari lagi"})
+        elif d is not None and d < 0 and s.get("status") == "Suspended":
+            items.append({"id": "exp-" + s["id"], "type": "renewal", "severity": "danger",
+                          "title": "Layanan kedaluwarsa",
+                          "message": f"{s['domain']} kedaluwarsa {abs(d)} hari lalu"})
+    return {"count": len(items), "items": items}
+
+def build_invoice_pdf(inv: dict, user: dict) -> bytes:
+    paid = inv["status"] == "Paid"
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_fill_color(22, 109, 180)
+    pdf.rect(0, 0, 210, 34, style="F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 24)
+    pdf.set_xy(14, 9)
+    pdf.cell(100, 10, "HostNesia", ln=0)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.set_xy(14, 20)
+    pdf.cell(100, 6, "Struk Pembayaran" if paid else "Invoice / Tagihan", ln=0)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_xy(110, 11)
+    pdf.cell(86, 8, inv["id"], align="R", ln=0)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_xy(110, 21)
+    pdf.cell(86, 6, "LUNAS" if paid else "BELUM DIBAYAR", align="R", ln=0)
+
+    pdf.set_text_color(30, 41, 59)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_xy(14, 44)
+    pdf.cell(0, 6, "Ditagihkan kepada:", ln=1)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.set_x(14)
+    pdf.cell(0, 6, user.get("nama", ""), ln=1)
+    pdf.set_x(14)
+    pdf.cell(0, 6, user.get("email", ""), ln=1)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_xy(110, 44)
+    pdf.cell(86, 6, f"Tanggal terbit : {str(inv.get('created_at',''))[:10]}", align="R", ln=1)
+    pdf.set_x(110)
+    pdf.cell(86, 6, f"Jatuh tempo   : {inv.get('tanggal_jatuh_tempo','')}", align="R", ln=1)
+
+    pdf.set_xy(14, 76)
+    pdf.set_fill_color(232, 243, 251)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(134, 10, "  Deskripsi", fill=True)
+    pdf.cell(48, 10, "Jumlah  ", fill=True, align="R", ln=1)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.set_x(14)
+    pdf.cell(134, 12, "  " + str(inv.get("deskripsi", "Layanan Hosting")))
+    pdf.cell(48, 12, f"Rp {format_rupiah(inv['jumlah_tagihan'])}  ", align="R", ln=1)
+    pdf.set_draw_color(226, 232, 240)
+    pdf.line(14, pdf.get_y() + 2, 196, pdf.get_y() + 2)
+    pdf.ln(6)
+    pdf.set_x(96)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(52, 10, "Total")
+    pdf.cell(48, 10, f"Rp {format_rupiah(inv['jumlah_tagihan'])}  ", align="R", ln=1)
+
+    if paid:
+        pdf.set_text_color(16, 185, 129)
+        pdf.set_font("Helvetica", "B", 30)
+        pdf.set_xy(14, 150)
+        pdf.cell(0, 12, "LUNAS / PAID")
+    pdf.set_text_color(100, 116, 139)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_xy(14, 280)
+    pdf.cell(0, 6, "HostNesia - Terima kasih telah menggunakan layanan kami.", align="C")
+    return bytes(pdf.output())
+
+@api_router.get("/invoices/{invoice_id}/pdf")
+async def invoice_pdf(invoice_id: str, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    inv = await db.invoices.find_one({"id": invoice_id, "user_id": uid}, {"_id": 0})
+    if not inv:
+        raise HTTPException(status_code=404, detail="Tagihan tidak ditemukan")
+    pdf_bytes = build_invoice_pdf(inv, serialize_user(user))
+    fname = ("struk" if inv["status"] == "Paid" else "invoice") + "-" + invoice_id + ".pdf"
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{fname}"'})
 
 # ---------------------------------------------------------------------------
 # App wiring

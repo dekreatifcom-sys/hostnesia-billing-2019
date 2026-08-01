@@ -8,6 +8,7 @@ import AppLayout from "@/components/AppLayout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import ServicesPage from "@/pages/ServicesPage";
+import ServiceDetailPage from "@/pages/ServiceDetailPage";
 import BillingPage from "@/pages/BillingPage";
 import ProfilePage from "@/pages/ProfilePage";
 
@@ -25,6 +26,7 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/layanan" element={<ServicesPage />} />
+              <Route path="/layanan/:id" element={<ServiceDetailPage />} />
               <Route path="/tagihan" element={<BillingPage />} />
               <Route path="/profil" element={<ProfilePage />} />
             </Route>

@@ -5,6 +5,7 @@ import { useWallet } from "@/lib/queries";
 import { idr } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import QuickActionsPanel from "@/components/QuickActionsPanel";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function TopHeader() {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function TopHeader() {
       </div>
 
       <div className="flex items-center gap-3">
+        <NotificationBell />
         <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2">
           <Wallet className="h-4 w-4 text-brand" />
           <span className="text-sm font-bold text-slate-800">{idr(wallet?.saldo_kredit)}</span>

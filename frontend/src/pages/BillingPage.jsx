@@ -5,11 +5,28 @@ import { api, apiError } from "@/lib/api";
 import { idr, dateID } from "@/lib/format";
 import WalletCard from "@/components/WalletCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowDownLeft, ArrowUpRight, Receipt, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowDownLeft, ArrowUpRight, Receipt, CheckCircle2, Download } from "lucide-react";
 
 function InvoiceRow({ invoice }) {
   const qc = useQueryClient();
   const paid = invoice.status === "Paid";
+
+  const downloadPdf = async () => {
+    try {
+      const res = await api.get(`/invoices/${invoice.id}/pdf`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${paid ? "struk" : "invoice"}-${invoice.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(apiError(e.response?.data?.detail || "Gagal mengunduh PDF"));
+    }
+  };
+
   const m = useMutation({
     mutationFn: () => api.post(`/invoices/${invoice.id}/pay`),
     onSuccess: (r) => {
@@ -41,21 +58,31 @@ function InvoiceRow({ invoice }) {
       </div>
       <div className="flex flex-col items-end gap-1.5">
         <p className="font-bold text-slate-800">{idr(invoice.jumlah_tagihan)}</p>
-        {paid ? (
-          <span className="flex items-center gap-1 text-xs text-emerald-600">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Terbayar
-          </span>
-        ) : (
+        <div className="flex items-center gap-1.5">
           <button
-            onClick={() => m.mutate()}
-            disabled={m.isPending}
-            data-testid={`invoice-pay-${invoice.id}`}
-            className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-60"
+            onClick={downloadPdf}
+            data-testid={`invoice-pdf-${invoice.id}`}
+            title={paid ? "Unduh Struk" : "Unduh Invoice"}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
           >
-            {m.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-            Bayar
+            <Download className="h-3.5 w-3.5" /> {paid ? "Struk" : "Invoice"}
           </button>
-        )}
+          {paid ? (
+            <span className="flex items-center gap-1 text-xs text-emerald-600">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Terbayar
+            </span>
+          ) : (
+            <button
+              onClick={() => m.mutate()}
+              disabled={m.isPending}
+              data-testid={`invoice-pay-${invoice.id}`}
+              className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-60"
+            >
+              {m.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              Bayar
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

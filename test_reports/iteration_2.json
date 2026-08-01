@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 2 E2E of HostNesia redesign + service detail + notifications + invoice PDF. Backend pytest 21 passed / 1 skipped (insufficient-balance, not deterministic). Frontend: login, redesigned dashboard (4 stat cards, white Saldo card with (+) top-up, notification bell with badge=4 and panel), Active Services LIST with per-row 'Kelola' dropdown (4 items: Detail Layanan / Kelola DNS / File Manager / Login cPanel), Service Detail page with DNS/Email/SSL/Backup tabs (SSL Aktif shown, Backup 'Buat Backup' triggers success toast), Order dialog opens from stat-order, Top-up dialog works (saldo 1.500.000 -> 1.750.000 via preset 250.000), Billing page has invoice-pdf-<id> buttons labelled Struk / Invoice and GET /api/invoices/{id}/pdf returns 200 application/pdf (magic %PDF verified). One critical frontend bug found & fixed: BillingPage.jsx referenced undefined `downloadPdf`, which would ReferenceError on click; added the function that fetches the PDF as blob and triggers a browser download.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "pages/BillingPage.jsx", "issue": "onClick={downloadPdf} referenced an undefined function (ESLint no-undef). Clicking any 'Invoice' / 'Struk' button would throw ReferenceError and no PDF would download. Fixed in-place by adding a downloadPdf() that calls api.get('/invoices/{id}/pdf', responseType:'blob') and triggers <a download>.", "selector": "[data-testid^='invoice-pdf-']", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Billing page (/tagihan)", "issues": ["Still shows the old blue WalletCard at the top; the redesign spec removed the blue wallet from Dashboard but Billing retains it. Not in scope of this iteration's requirements — flagging for consistency review only."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Review the downloadPdf fix in /app/frontend/src/pages/BillingPage.jsx and align with product intent (e.g., open in new tab vs. auto-download).",
+    "Optionally align Billing page header with new design language (currently still uses the old blue WalletCard).",
+    "(Carry-over from iteration_1) Login.jsx setState-during-render warning still present in some flows; low priority."
+  ],
+  "critical_code_review_comments": [
+    "BillingPage.jsx shipped with an undefined identifier `downloadPdf` — this would have been caught by ESLint (`no-undef`). Consider running `yarn lint` in CI to block such regressions.",
+    "notifications endpoint recomputes lists per-request without indexes on invoices.user_id / services.user_id — fine at demo scale, but add indexes if usage grows.",
+    "get_current_user catches ObjectId(payload['sub']) invalid case now (good) — same pattern should be used elsewhere.",
+    "service_detail returns backups from `_mock_backups()` (in-memory, non-persistent). If Backup tab is expected to reflect real state, persist backups collection.",
+    "Invoice PDF route may be blocked by ingress WAF for non-browser UAs — tests use localhost:8001 to bypass; document this for production."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added 6 tests: service_detail x2, create_backup, notifications, invoice_pdf x2)",
+    "/app/frontend/src/pages/BillingPage.jsx (added missing downloadPdf function)"
+  ],
+  "success_rate": { "backend": "100% (21/21 executed passed; 1 skipped by design)", "frontend": "100% of iteration-2 features verified after the downloadPdf fix" },
+  "test_credentials": "email: dekreatif.com@gmail.com / password: HostNesia123! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Backend seed unchanged: 1 user, 4 services, 4 invoices, 4 txns, 4 DNS records (budistore.id), 2 email accounts (budistore.id). Tests add 1 order + 1 dns + 1 email + 1 topup + 1 successful invoice payment per run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend suite at /app/backend/tests/backend_test.py now covers iteration-2 endpoints. PDF endpoint tests hit http://localhost:8001 directly to avoid ingress WAF blocking application/pdf for non-browser clients. Verified testids: dashboard-page, stat-layanan/domain/tagihan/order, saldo-card, saldo-balance, saldo-topup-button, topup-amount-<n>, topup-confirm-button, notification-bell, notification-count, notification-panel, notification-<id>, service-row-<id>, service-manage-<id>, manage-detail-<id>, service-detail-page, detail-tab-{dns,email,ssl,backup}, detail-add-dns, detail-add-email, detail-create-backup, invoice-pdf-<id>, invoice-pay-<id>. Notification count on demo user is currently 4 (2 unpaid invoices + 1 high-disk tokosaya.com 96% + 1 renewal/expired tokosaya.com). Order dialog opens via stat-order (uses role=dialog / data-testid=quick-action-dialog if present).",
+  "rca_of_the_issue": "In BillingPage.jsx the JSX called `onClick={downloadPdf}` but no such symbol was in scope (neither imported nor defined inside InvoiceRow). React would still render, but the first click on any Invoice/Struk button would throw `ReferenceError: downloadPdf is not defined`, silently failing the PDF download UX. Root cause: E1 wired the button before implementing the handler. Fix: defined `downloadPdf` inside InvoiceRow that GETs /api/invoices/{id}/pdf with responseType=blob, creates an object URL, and triggers a hidden <a download> click; errors are surfaced via sonner toast."
+}

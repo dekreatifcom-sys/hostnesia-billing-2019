@@ -14,3 +14,9 @@ export const useWallet = () =>
 
 export const useProducts = () =>
   useQuery({ queryKey: ["products"], queryFn: () => fetcher("/products") });
+
+export const useService = (id) =>
+  useQuery({ queryKey: ["service", id], queryFn: () => fetcher(`/services/${id}`), enabled: !!id });
+
+export const useNotifications = () =>
+  useQuery({ queryKey: ["notifications"], queryFn: () => fetcher("/notifications") });

@@ -101,16 +101,18 @@ function OrderForm({ onDone }) {
   );
 }
 
-function DnsForm({ onDone }) {
+function DnsForm({ onDone, initialServiceId }) {
   const { data: services = [] } = useServices();
-  const [serviceId, setServiceId] = useState("");
+  const [serviceId, setServiceId] = useState(initialServiceId || "");
   const [type, setType] = useState("A");
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
+  const qc = useQueryClient();
 
   const m = useMutation({
     mutationFn: () => api.post(`/services/${serviceId}/dns`, { type, name, value }),
     onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["service", serviceId] });
       toast.success(r.data.message);
       onDone();
     },
@@ -184,16 +186,18 @@ function DnsForm({ onDone }) {
   );
 }
 
-function EmailForm({ onDone }) {
+function EmailForm({ onDone, initialServiceId }) {
   const { data: services = [] } = useServices();
-  const [serviceId, setServiceId] = useState("");
+  const [serviceId, setServiceId] = useState(initialServiceId || "");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const domain = services.find((s) => s.id === serviceId)?.domain || "domain";
+  const qc = useQueryClient();
 
   const m = useMutation({
     mutationFn: () => api.post(`/services/${serviceId}/email`, { username, password }),
     onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["service", serviceId] });
       toast.success(r.data.message);
       onDone();
     },
@@ -256,8 +260,9 @@ function EmailForm({ onDone }) {
 }
 
 export default function QuickActionForms() {
-  const { activeForm, closeForm } = useQuickActions();
+  const { activeForm, closeForm, formPayload } = useQuickActions();
   const meta = activeForm ? TITLES[activeForm] : null;
+  const sid = formPayload?.serviceId;
 
   return (
     <Dialog open={!!activeForm} onOpenChange={(o) => !o && closeForm()}>
@@ -269,8 +274,8 @@ export default function QuickActionForms() {
           </DialogHeader>
         )}
         {activeForm === "order" && <OrderForm onDone={closeForm} />}
-        {activeForm === "dns" && <DnsForm onDone={closeForm} />}
-        {activeForm === "email" && <EmailForm onDone={closeForm} />}
+        {activeForm === "dns" && <DnsForm onDone={closeForm} initialServiceId={sid} />}
+        {activeForm === "email" && <EmailForm onDone={closeForm} initialServiceId={sid} />}
       </DialogContent>
     </Dialog>
   );

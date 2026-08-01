@@ -185,3 +185,65 @@ def test_dns_invalid_service(auth):
     r = requests.post(f"{API}/services/does-not-exist/dns", headers=auth,
                       json={"type": "A", "name": "x", "value": "1.1.1.1"}, timeout=30)
     assert r.status_code == 404
+
+
+# ---------------------------- Service Detail -----------------------
+def test_service_detail_budistore(auth):
+    services = requests.get(f"{API}/services", headers=auth, timeout=30).json()
+    svc = next((s for s in services if s["domain"] == "budistore.id"), None)
+    assert svc is not None
+    r = requests.get(f"{API}/services/{svc['id']}", headers=auth, timeout=30)
+    assert r.status_code == 200
+    body = r.json()
+    for k in ("id", "domain", "ip", "nameserver", "dns_records", "email_accounts", "ssl", "backups"):
+        assert k in body, f"missing {k}"
+    # seeded 4 DNS + 2 email
+    assert len(body["dns_records"]) >= 4
+    assert len(body["email_accounts"]) >= 2
+    assert body["ssl"]["status"] in ("Active", "Expired")
+    assert len(body["backups"]) == 3
+
+
+def test_service_detail_404(auth):
+    r = requests.get(f"{API}/services/does-not-exist", headers=auth, timeout=30)
+    assert r.status_code == 404
+
+
+def test_create_backup(auth):
+    services = requests.get(f"{API}/services", headers=auth, timeout=30).json()
+    sid = services[0]["id"]
+    r = requests.post(f"{API}/services/{sid}/backup", headers=auth, timeout=30)
+    assert r.status_code == 200
+    body = r.json()
+    assert "backup" in body and body["backup"]["type"] == "Manual"
+
+
+# ---------------------------- Notifications -----------------------
+def test_notifications(auth):
+    r = requests.get(f"{API}/notifications", headers=auth, timeout=30)
+    assert r.status_code == 200
+    body = r.json()
+    assert "count" in body and "items" in body
+    assert body["count"] == len(body["items"])
+    types = [i["type"] for i in body["items"]]
+    # Expect at least invoice + disk notifications
+    assert "invoice" in types
+    # disk notification for tokosaya.com (96%) should exist
+    assert any(i["type"] == "disk" and "tokosaya.com" in i["message"] for i in body["items"])
+
+
+# ---------------------------- Invoice PDF -------------------------
+def test_invoice_pdf_download(auth):
+    invoices = requests.get(f"{API}/invoices", headers=auth, timeout=30).json()
+    inv_id = invoices[0]["id"]
+    # Direct backend so we bypass any ingress WAF blocking PDF downloads
+    r = requests.get(f"http://localhost:8001/api/invoices/{inv_id}/pdf", headers=auth, timeout=30)
+    assert r.status_code == 200
+    assert r.headers.get("content-type", "").startswith("application/pdf")
+    assert r.content[:4] == b"%PDF"
+    assert len(r.content) > 500
+
+
+def test_invoice_pdf_404(auth):
+    r = requests.get(f"http://localhost:8001/api/invoices/NOPE/pdf", headers=auth, timeout=30)
+    assert r.status_code == 404
