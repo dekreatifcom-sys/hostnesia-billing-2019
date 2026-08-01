@@ -4,9 +4,9 @@
 High-fidelity, mobile-first prototype for a modern Web Hosting Billing & Client Management system (WHMCS/Blesta style) — client-area scope. "Hybrid Headless Panel" (inspired by Spaceship.com & Hostinger): native UI for quick actions, deep-linked SSO for heavy features (File Manager, phpMyAdmin), and a cPanel escape hatch. Primary brand color #166db4. Mobile-first bottom bar with a central floating "+" action, slide-up bottom sheet; transitions to sidebar + top-header dropdown + grid on desktop.
 
 ## Architecture
-- **Frontend**: React 19 + Tailwind + shadcn/ui, framer-motion (bottom sheet / overlays), lucide-react icons (#166db4), sonner toasts, react-query for data. Fonts: Manrope (headings) + Plus Jakarta Sans (body).
-- **Backend**: FastAPI + MongoDB (motor). JWT Bearer auth (bcrypt), token stored in localStorage `hn_token`. All routes under `/api`.
-- **Auto-seeded demo data** on startup (idempotent).
+- **Frontend**: React 19 + Tailwind + shadcn/ui, framer-motion (bottom sheet / overlays), lucide-react icons (#166db4), sonner toasts, react-query. Fonts: Manrope (headings) + Plus Jakarta Sans (body).
+- **Backend**: FastAPI + MongoDB (motor). JWT Bearer auth (bcrypt), token in localStorage `hn_token`. PDF via fpdf2. All routes under `/api`.
+- **Auto-seeded demo data** on startup (idempotent): 1 user, 4 services, 4 invoices (2 unpaid), 4 transactions, 4 DNS records + 2 email accounts (budistore.id).
 
 ## User Personas
 - Hosting client (non-technical): manages services, pays invoices, tops up wallet via a clean "super app".
@@ -15,23 +15,22 @@ High-fidelity, mobile-first prototype for a modern Web Hosting Billing & Client 
 ## Core Requirements (static)
 - Mock schema: users(id,nama,email,saldo_kredit), services(id,user_id,nama_produk,domain,status,persentase_penggunaan_disk,tanggal_jatuh_tempo_selanjutnya), invoices(id,jumlah_tagihan,status,tanggal_jatuh_tempo) + wallet transactions.
 - Mobile bottom bar (5 items, elevated central FAB) → slide-up Quick Actions sheet; desktop sidebar + top-header "Quick Actions" dropdown.
-- Dashboard: greeting, wallet balance card, swipeable services carousel (grid on desktop), unpaid-invoices alert.
 
-## Implemented (2026-08-01)
-- JWT login page (demo account prefilled) + protected routes + logout.
-- Dashboard: wallet card, unpaid alert, mobile swipeable carousel / desktop grid, disk-usage progress bars.
-- Quick Actions: Order Layanan Baru (creates service + unpaid invoice), Kelola DNS, Buat Akun Email — all native forms hitting mock APIs. File Manager / phpMyAdmin / cPanel = simulated SSO overlay + toast.
-- Billing & Wallet page: invoices list with Bayar (deducts saldo, marks Paid, logs transaction), transaction history tab, top-up dialog with presets.
-- Profile page: account details, cPanel escape hatch, logout.
-- Responsive mobile↔desktop layouts; brand #166db4 throughout.
-- Backend endpoints: /api/auth/{login,me,logout}, /products, /services, /services/order, /services/{id}/dns, /services/{id}/email, /invoices, /invoices/{id}/pay, /wallet, /wallet/topup.
-- Tested via testing_agent (backend 15/16 pytest, frontend all flows). Fixed: unique invoice IDs, login redirect-in-render, resilient token/ObjectId handling.
+## Implemented
+### 2026-08-01 — MVP
+- JWT login, protected routes, logout. Dashboard v1 (wallet card, carousel/grid, unpaid alert). Quick Actions (Order/DNS/Email native forms + SSO simulations). Billing & Wallet (pay invoice, top-up, transaction history). Profile page. Responsive mobile↔desktop.
+
+### 2026-08-01 — Iteration 2 (redesign + 4 features)
+- **Dashboard redesign** (per user reference: DomaiNesia/HostNesia): removed blue wallet card; 4 stat cards (Layanan, Domain, Tagihan, Order Layanan CTA), white Saldo Dompet card with top-right (+) top-up icon, billing summary (unpaid alert / all-paid), Active services as a LIST/TABLE with per-row "Kelola" dropdown (Detail / DNS / File Manager / cPanel).
+- **Service Detail page** (/layanan/:id): header (IP, nameserver, due, disk) + SSO buttons + tabs DNS / Email / SSL / Backup (add DNS/email with service preselected; create/restore backup simulated).
+- **Invoice/Struk PDF**: download button per invoice on Billing page; GET /api/invoices/{id}/pdf builds branded PDF (LUNAS/PAID stamp for paid, BELUM DIBAYAR for unpaid) — visually verified.
+- **Smart Notifications**: bell (desktop top-header + mobile dashboard) via GET /api/notifications — unpaid/overdue invoices, high disk usage (≥85%), renewal/expiry.
+- Tested via testing_agent iteration_2: backend 21/21 pytest pass, frontend 100% (fixed a downloadPdf handler bug). Invoice-id collision + token handling fixed in iteration_1.
 
 ## Backlog
-- P1: Service detail page (DNS records list, email accounts list, SSL, backups).
-- P1: Real invoice PDF / receipt download.
-- P2: Notifications, multi-currency, real payment gateway (Stripe/Midtrans).
-- P2: Move PRODUCTS to DB; admin panel.
+- P1: Persist backups collection; real invoice line-items / tax.
+- P2: Real payment gateway (Stripe/Midtrans), auto-pay from wallet on due, domains module, admin panel, indexes on user_id.
+- P2: Align Billing page header with new design language (still uses blue WalletCard — intentional hero).
 
 ## Next Tasks
-- Service detail drill-down; renewal flow from an invoice; auto-pay from wallet.
+- Renewal flow from an invoice; auto-debit wallet; notification click → deep link to the relevant page.
