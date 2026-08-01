@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { useServices, useInvoices, useWallet } from "@/lib/queries";
+import { useServices, useInvoices, useWallet, useDomains } from "@/lib/queries";
 import { useAuth } from "@/context/AuthContext";
 import { useQuickActions } from "@/context/QuickActionsContext";
-import SaldoCard from "@/components/SaldoCard";
+import BannerSlider from "@/components/BannerSlider";
 import ServiceListRow from "@/components/ServiceListRow";
 import NotificationBell from "@/components/NotificationBell";
+import TopupDialog from "@/components/TopupDialog";
 import { idr } from "@/lib/format";
-import { Server, Globe, Receipt, ShoppingCart, Loader2, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+import { Server, Globe, Receipt, ShoppingCart, Loader2, AlertTriangle, CheckCircle2, ArrowRight, Wallet, Plus } from "lucide-react";
 
 function greeting() {
   const h = new Date().getHours();
@@ -37,26 +38,39 @@ export default function Dashboard() {
   const { data: services = [], isLoading: sl } = useServices();
   const { data: invoices = [] } = useInvoices();
   const { data: wallet } = useWallet();
+  const { data: domains = [] } = useDomains();
 
-  const active = services.filter((s) => s.status === "Active");
+  const hosting = services.filter((s) => (s.category || "hosting") === "hosting");
+  const active = hosting.filter((s) => s.status === "Active");
   const unpaid = invoices.filter((i) => i.status === "Unpaid");
   const unpaidTotal = unpaid.reduce((a, i) => a + i.jumlah_tagihan, 0);
 
   return (
     <div className="space-y-6" data-testid="dashboard-page">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm text-slate-400">{greeting()},</p>
           <h1 className="font-heading text-2xl font-extrabold text-slate-800 md:text-3xl">{user?.nama} 👋</h1>
         </div>
-        <div className="md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-3 pr-1.5" data-testid="mobile-saldo">
+            <Wallet className="h-4 w-4 text-brand" />
+            <span className="text-xs font-bold text-slate-800">{idr(wallet?.saldo_kredit)}</span>
+            <TopupDialog>
+              <button data-testid="mobile-topup-button" aria-label="Top-up saldo" className="flex h-6 w-6 items-center justify-center rounded-md bg-brand text-white">
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </TopupDialog>
+          </div>
           <NotificationBell />
         </div>
       </div>
 
+      <BannerSlider />
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard value={active.length} label="Layanan" icon={Server} valueClass="text-brand" onClick={() => navigate("/layanan")} testid="stat-layanan" />
-        <StatCard value={services.length} label="Domain" icon={Globe} valueClass="text-slate-800" onClick={() => navigate("/layanan")} testid="stat-domain" />
+        <StatCard value={domains.length} label="Domain" icon={Globe} valueClass="text-slate-800" onClick={() => navigate("/domain")} testid="stat-domain" />
         <StatCard value={unpaid.length} label="Tagihan" icon={Receipt} valueClass="text-red-500" onClick={() => navigate("/tagihan")} testid="stat-tagihan" />
         <button
           onClick={() => openForm("order")}
@@ -68,36 +82,29 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SaldoCard saldo={wallet?.saldo_kredit} />
-        <div className="lg:col-span-2">
-          {unpaid.length > 0 ? (
-            <div className="flex h-full flex-col justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center" data-testid="unpaid-alert">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                  <AlertTriangle className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="font-heading text-sm font-bold text-amber-900">{unpaid.length} Tagihan Belum Dibayar</p>
-                  <p className="text-sm text-amber-700">Total <span className="font-bold">{idr(unpaidTotal)}</span> menunggu pembayaran.</p>
-                </div>
-              </div>
-              <button onClick={() => navigate("/tagihan")} data-testid="unpaid-pay-button" className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600">
-                Bayar Sekarang <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex h-full items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5" data-testid="all-paid-card">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </span>
+      <div>
+        {unpaid.length > 0 ? (
+          <div className="flex flex-col justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center" data-testid="unpaid-alert">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600"><AlertTriangle className="h-5 w-5" /></span>
               <div>
-                <p className="font-heading text-sm font-bold text-emerald-900">Semua tagihan lunas</p>
-                <p className="text-sm text-emerald-700">Tidak ada tagihan yang menunggu pembayaran.</p>
+                <p className="font-heading text-sm font-bold text-amber-900">{unpaid.length} Tagihan Belum Dibayar</p>
+                <p className="text-sm text-amber-700">Total <span className="font-bold">{idr(unpaidTotal)}</span> menunggu pembayaran.</p>
               </div>
             </div>
-          )}
-        </div>
+            <button onClick={() => navigate("/tagihan")} data-testid="unpaid-pay-button" className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600">
+              Bayar Sekarang <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5" data-testid="all-paid-card">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"><CheckCircle2 className="h-5 w-5" /></span>
+            <div>
+              <p className="font-heading text-sm font-bold text-emerald-900">Semua tagihan lunas</p>
+              <p className="text-sm text-emerald-700">Tidak ada tagihan yang menunggu pembayaran.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <section>
@@ -107,14 +114,14 @@ export default function Dashboard() {
         </div>
         {sl ? (
           <div className="flex h-32 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>
-        ) : services.length === 0 ? (
+        ) : hosting.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
             <Server className="mx-auto h-8 w-8 text-slate-300" />
             <p className="mt-3 text-sm text-slate-500">Belum ada layanan aktif.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-            {services.map((s) => (
+            {hosting.map((s) => (
               <ServiceListRow key={s.id} service={s} />
             ))}
           </div>

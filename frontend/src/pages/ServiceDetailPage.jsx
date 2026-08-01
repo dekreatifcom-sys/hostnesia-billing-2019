@@ -5,6 +5,7 @@ import { api, apiError } from "@/lib/api";
 import { useService } from "@/lib/queries";
 import { useQuickActions } from "@/context/QuickActionsContext";
 import StatusBadge from "@/components/StatusBadge";
+import ServiceActions from "@/components/ServiceActions";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { dateID, dueInfo } from "@/lib/format";
 import {
@@ -99,6 +100,8 @@ export default function ServiceDetailPage() {
           </button>
         </div>
       </div>
+
+      <ServiceActions service={svc} />
 
       <Tabs defaultValue="dns">
         <TabsList className="grid w-full grid-cols-4 rounded-xl md:w-96">

@@ -20,3 +20,15 @@ export const useService = (id) =>
 
 export const useNotifications = () =>
   useQuery({ queryKey: ["notifications"], queryFn: () => fetcher("/notifications") });
+
+export const useDomains = () =>
+  useQuery({ queryKey: ["domains"], queryFn: () => fetcher("/domains") });
+
+export const useDomain = (id) =>
+  useQuery({ queryKey: ["domain", id], queryFn: () => fetcher(`/domains/${id}`), enabled: !!id });
+
+export const useTlds = () =>
+  useQuery({ queryKey: ["tlds"], queryFn: () => fetcher("/tlds") });
+
+export const useAffiliate = () =>
+  useQuery({ queryKey: ["affiliate"], queryFn: () => fetcher("/affiliate") });

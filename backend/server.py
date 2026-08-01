@@ -158,6 +158,36 @@ async def seed():
              "status": "Suspended", "persentase_penggunaan_disk": 96, "tanggal_jatuh_tempo_selanjutnya": "2026-07-05",
              "ip": "103.171.44.33", "nameserver": "ns1.hostnesia.id", "created_at": "2025-07-05"},
         ])
+        await db.services.update_many({"user_id": user_id, "category": {"$exists": False}}, {"$set": {"category": "hosting"}})
+
+    if await db.services.count_documents({"user_id": user_id, "category": "jasa"}) == 0:
+        await db.services.insert_many([
+            {"id": str(uuid.uuid4()), "user_id": user_id, "category": "jasa", "nama_produk": "Jasa Pembuatan Website Perusahaan",
+             "domain": "Proyek: PT Maju Jaya", "status": "Active", "persentase_penggunaan_disk": 0,
+             "tanggal_jatuh_tempo_selanjutnya": "2026-09-10", "ip": "-", "nameserver": "-", "created_at": "2026-06-10",
+             "deskripsi": "Company profile 5 halaman, revisi 3x"},
+            {"id": str(uuid.uuid4()), "user_id": user_id, "category": "jasa", "nama_produk": "Jasa SEO On-Page & Off-Page",
+             "domain": "Target: budistore.id", "status": "Active", "persentase_penggunaan_disk": 0,
+             "tanggal_jatuh_tempo_selanjutnya": "2026-08-20", "ip": "-", "nameserver": "-", "created_at": "2026-05-20",
+             "deskripsi": "Optimasi 10 keyword utama"},
+            {"id": str(uuid.uuid4()), "user_id": user_id, "category": "jasa", "nama_produk": "Jasa Iklan Google & Meta Ads",
+             "domain": "Budget: Rp 3jt/bln", "status": "Suspended", "persentase_penggunaan_disk": 0,
+             "tanggal_jatuh_tempo_selanjutnya": "2026-07-01", "ip": "-", "nameserver": "-", "created_at": "2026-04-01",
+             "deskripsi": "Kampanye konversi & retargeting"},
+        ])
+
+    if await db.domains.count_documents({"user_id": user_id}) == 0:
+        await db.domains.insert_many([
+            {"id": str(uuid.uuid4()), "user_id": user_id, "domain": "budistore.id", "status": "Active", "registrar": "HostNesia",
+             "registration_date": "2024-12-01", "expiry_date": "2026-12-01", "auto_renew": True, "registrar_lock": True,
+             "nameservers": ["ns1.hostnesia.id", "ns2.hostnesia.id"], "dnssec": False, "epp": "aB3x9-Kd7Le", "privacy": True},
+            {"id": str(uuid.uuid4()), "user_id": user_id, "domain": "tokosaya.com", "status": "Active", "registrar": "HostNesia",
+             "registration_date": "2023-07-05", "expiry_date": "2026-10-05", "auto_renew": False, "registrar_lock": True,
+             "nameservers": ["ns1.hostnesia.id", "ns2.hostnesia.id"], "dnssec": True, "epp": "9Qw2e-Rt5Yu", "privacy": False},
+            {"id": str(uuid.uuid4()), "user_id": user_id, "domain": "digifox.id", "status": "Expired", "registrar": "HostNesia",
+             "registration_date": "2022-06-15", "expiry_date": "2026-07-04", "auto_renew": False, "registrar_lock": False,
+             "nameservers": ["ns1.hostnesia.id", "ns2.hostnesia.id"], "dnssec": False, "epp": "Zx1c2-Vb3Nm", "privacy": True},
+        ])
 
     if await db.invoices.count_documents({"user_id": user_id}) == 0:
         await db.invoices.insert_many([
@@ -502,6 +532,82 @@ async def invoice_pdf(invoice_id: str, user: dict = Depends(get_current_user)):
     fname = ("struk" if inv["status"] == "Paid" else "invoice") + "-" + invoice_id + ".pdf"
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+
+class DomainCheckInput(BaseModel):
+    query: str
+
+class ActionInput(BaseModel):
+    action: str
+    value: Optional[str] = None
+
+TLDS = [
+    {"tld": ".com", "price": 139900, "renew": 159900, "popular": True},
+    {"tld": ".id", "price": 199900, "renew": 219900, "popular": True},
+    {"tld": ".net", "price": 149900, "renew": 169900, "popular": True},
+    {"tld": ".my.id", "price": 15000, "renew": 25000, "popular": True},
+    {"tld": ".online", "price": 29900, "renew": 329900, "popular": False},
+    {"tld": ".store", "price": 68000, "renew": 449000, "popular": False},
+    {"tld": ".xyz", "price": 25000, "renew": 159000, "popular": False},
+    {"tld": ".co.id", "price": 275000, "renew": 275000, "popular": False},
+]
+
+@api_router.get("/tlds")
+async def get_tlds(user: dict = Depends(get_current_user)):
+    return TLDS
+
+@api_router.post("/domains/check")
+async def check_domain(payload: DomainCheckInput, user: dict = Depends(get_current_user)):
+    name = payload.query.strip().lower().split(".")[0].replace(" ", "")
+    if not name:
+        raise HTTPException(status_code=400, detail="Masukkan nama domain")
+    results = []
+    for t in TLDS:
+        available = ((hash(name + t["tld"]) >> 3) % 3) != 0
+        results.append({"domain": name + t["tld"], "tld": t["tld"], "price": t["price"], "available": available})
+    return {"query": name, "results": results}
+
+@api_router.get("/domains")
+async def get_domains(user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    return await db.domains.find({"user_id": uid}, {"_id": 0}).to_list(200)
+
+@api_router.get("/domains/{domain_id}")
+async def get_domain(domain_id: str, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    d = await db.domains.find_one({"id": domain_id, "user_id": uid}, {"_id": 0})
+    if not d:
+        raise HTTPException(status_code=404, detail="Domain tidak ditemukan")
+    d["dns_records"] = await db.dns_records.find({"user_id": uid}, {"_id": 0}).to_list(50)
+    return d
+
+@api_router.post("/services/{service_id}/action")
+async def service_action(service_id: str, payload: ActionInput, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    svc = await db.services.find_one({"id": service_id, "user_id": uid})
+    if not svc:
+        raise HTTPException(status_code=404, detail="Layanan tidak ditemukan")
+    messages = {
+        "change_password": "Kata sandi cPanel berhasil diperbarui",
+        "upgrade": f"Permintaan perubahan paket ke '{payload.value}' telah dikirim",
+        "unblock_ip": f"IP {payload.value} berhasil di-unblock",
+        "cancel": "Permintaan pembatalan layanan telah dikirim ke tim kami",
+    }
+    return {"message": messages.get(payload.action, "Tindakan berhasil diproses")}
+
+@api_router.get("/affiliate")
+async def get_affiliate(user: dict = Depends(get_current_user)):
+    return {
+        "code": "RIZKY2026",
+        "link": "https://hostnesia.id/aff/RIZKY2026",
+        "balance": 1250000,
+        "stats": {"clicks": 342, "signups": 28, "conversion": 8.2, "pending": 450000, "paid": 800000},
+        "referrals": [
+            {"date": "2026-07-20", "name": "an***@gmail.com", "status": "Konversi", "commission": 150000},
+            {"date": "2026-07-14", "name": "bu***@gmail.com", "status": "Konversi", "commission": 120000},
+            {"date": "2026-07-02", "name": "ci***@yahoo.com", "status": "Pending", "commission": 90000},
+            {"date": "2026-06-25", "name": "de***@gmail.com", "status": "Konversi", "commission": 180000},
+        ],
+    }
 
 # ---------------------------------------------------------------------------
 # App wiring

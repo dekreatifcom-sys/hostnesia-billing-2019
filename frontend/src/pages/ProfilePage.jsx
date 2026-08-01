@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useQuickActions } from "@/context/QuickActionsContext";
 import { useWallet } from "@/lib/queries";
 import { idr } from "@/lib/format";
-import { Mail, Phone, Wallet, KeyRound, LogOut, ChevronRight, ShieldCheck } from "lucide-react";
+import { Mail, Phone, Wallet, KeyRound, LogOut, ChevronRight, ShieldCheck, Globe, Users, Briefcase } from "lucide-react";
 
 function Row({ icon: Icon, label, value }) {
   return (
@@ -44,6 +44,27 @@ export default function ProfilePage() {
         <Row icon={Mail} label="Email" value={user?.email} />
         <Row icon={Phone} label="Telepon" value={user?.phone || "-"} />
         <Row icon={Wallet} label="Saldo Kredit" value={idr(wallet?.saldo_kredit)} />
+      </div>
+
+      <div>
+        <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Menu</p>
+        <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <button onClick={() => navigate("/domain")} data-testid="profile-nav-domain" className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-light text-brand"><Globe className="h-5 w-5" /></span>
+            <span className="flex-1 text-sm font-semibold text-slate-800">Domain Saya</span>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </button>
+          <button onClick={() => navigate("/layanan/jasa")} data-testid="profile-nav-jasa" className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-light text-brand"><Briefcase className="h-5 w-5" /></span>
+            <span className="flex-1 text-sm font-semibold text-slate-800">Layanan Jasa</span>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </button>
+          <button onClick={() => navigate("/afiliasi")} data-testid="profile-nav-afiliasi" className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-light text-brand"><Users className="h-5 w-5" /></span>
+            <span className="flex-1 text-sm font-semibold text-slate-800">Program Afiliasi</span>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </button>
+        </div>
       </div>
 
       <div>

@@ -247,3 +247,117 @@ def test_invoice_pdf_download(auth):
 def test_invoice_pdf_404(auth):
     r = requests.get(f"http://localhost:8001/api/invoices/NOPE/pdf", headers=auth, timeout=30)
     assert r.status_code == 404
+
+
+# =========================== ITERATION 3 ============================
+# Domains, TLDs, Domain check, Affiliate, Service actions, Services (category)
+
+def test_services_have_category(auth):
+    r = requests.get(f"{API}/services", headers=auth, timeout=30)
+    assert r.status_code == 200
+    items = r.json()
+    hosting = [s for s in items if s.get("category") == "hosting"]
+    jasa = [s for s in items if s.get("category") == "jasa"]
+    assert len(hosting) >= 4, f"expected >=4 hosting, got {len(hosting)}"
+    assert len(jasa) == 3, f"expected 3 jasa, got {len(jasa)}"
+
+
+def test_domains_list(auth):
+    r = requests.get(f"{API}/domains", headers=auth, timeout=30)
+    assert r.status_code == 200
+    items = r.json()
+    assert len(items) == 3
+    keys = {"id", "domain", "status", "expiry_date", "nameservers", "epp"}
+    for d in items:
+        assert keys.issubset(d.keys())
+
+
+def test_domain_detail(auth):
+    domains = requests.get(f"{API}/domains", headers=auth, timeout=30).json()
+    did = domains[0]["id"]
+    r = requests.get(f"{API}/domains/{did}", headers=auth, timeout=30)
+    assert r.status_code == 200
+    d = r.json()
+    assert d["id"] == did
+    assert isinstance(d.get("dns_records"), list)
+
+
+def test_domain_detail_404(auth):
+    r = requests.get(f"{API}/domains/does-not-exist", headers=auth, timeout=30)
+    assert r.status_code == 404
+
+
+def test_tlds(auth):
+    r = requests.get(f"{API}/tlds", headers=auth, timeout=30)
+    assert r.status_code == 200
+    items = r.json()
+    tlds = {t["tld"] for t in items}
+    assert {".com", ".id", ".net", ".my.id"}.issubset(tlds)
+    popular = [t for t in items if t.get("popular")]
+    assert len(popular) >= 4
+
+
+def test_domain_check(auth):
+    r = requests.post(f"{API}/domains/check", headers=auth, json={"query": "budistore"}, timeout=30)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["query"] == "budistore"
+    assert len(body["results"]) == 8
+    for res in body["results"]:
+        assert "domain" in res and "available" in res and "price" in res
+
+
+def test_domain_check_empty(auth):
+    r = requests.post(f"{API}/domains/check", headers=auth, json={"query": "   "}, timeout=30)
+    assert r.status_code == 400
+
+
+def test_affiliate(auth):
+    r = requests.get(f"{API}/affiliate", headers=auth, timeout=30)
+    assert r.status_code == 200
+    body = r.json()
+    for k in ("code", "link", "balance", "stats", "referrals"):
+        assert k in body
+    assert body["balance"] == 1250000
+    assert len(body["referrals"]) >= 3
+
+
+def test_service_action_change_password(auth):
+    services = requests.get(f"{API}/services", headers=auth, timeout=30).json()
+    sid = [s for s in services if s.get("category") == "hosting"][0]["id"]
+    r = requests.post(f"{API}/services/{sid}/action", headers=auth,
+                      json={"action": "change_password", "value": "NewP@ss123"}, timeout=30)
+    assert r.status_code == 200
+    assert "berhasil" in r.json()["message"].lower()
+
+
+def test_service_action_upgrade(auth):
+    services = requests.get(f"{API}/services", headers=auth, timeout=30).json()
+    sid = [s for s in services if s.get("category") == "hosting"][0]["id"]
+    r = requests.post(f"{API}/services/{sid}/action", headers=auth,
+                      json={"action": "upgrade", "value": "Business"}, timeout=30)
+    assert r.status_code == 200
+    assert "Business" in r.json()["message"]
+
+
+def test_service_action_unblock_ip(auth):
+    services = requests.get(f"{API}/services", headers=auth, timeout=30).json()
+    sid = [s for s in services if s.get("category") == "hosting"][0]["id"]
+    r = requests.post(f"{API}/services/{sid}/action", headers=auth,
+                      json={"action": "unblock_ip", "value": "1.2.3.4"}, timeout=30)
+    assert r.status_code == 200
+    assert "1.2.3.4" in r.json()["message"]
+
+
+def test_service_action_cancel(auth):
+    services = requests.get(f"{API}/services", headers=auth, timeout=30).json()
+    sid = [s for s in services if s.get("category") == "hosting"][0]["id"]
+    r = requests.post(f"{API}/services/{sid}/action", headers=auth,
+                      json={"action": "cancel"}, timeout=30)
+    assert r.status_code == 200
+
+
+def test_service_action_404(auth):
+    r = requests.post(f"{API}/services/nope/action", headers=auth,
+                      json={"action": "cancel"}, timeout=30)
+    assert r.status_code == 404
