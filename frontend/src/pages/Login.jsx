@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Zap, Loader2, Mail, Lock } from "lucide-react";
@@ -16,9 +16,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  if (ready && user) {
-    navigate("/", { replace: true });
-  }
+  useEffect(() => {
+    if (ready && user) navigate("/", { replace: true });
+  }, [ready, user, navigate]);
 
   const submit = async (e) => {
     e.preventDefault();

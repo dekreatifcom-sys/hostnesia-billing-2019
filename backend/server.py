@@ -74,7 +74,10 @@ async def get_current_user(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Sesi berakhir, silakan login kembali")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token tidak valid")
-    user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+    try:
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token tidak valid")
     if not user:
         raise HTTPException(status_code=401, detail="Pengguna tidak ditemukan")
     return user
@@ -286,7 +289,7 @@ async def order_service(payload: OrderInput, user: dict = Depends(get_current_us
                "tanggal_jatuh_tempo_selanjutnya": due, "ip": "103.171.44." + str(100 + (now.second % 150)),
                "nameserver": "ns1.hostnesia.id", "created_at": now.date().isoformat()}
     await db.services.insert_one(dict(service))
-    inv_id = "INV-" + now.strftime("%Y%m%d%H%M")
+    inv_id = "INV-" + now.strftime("%Y%m%d%H%M%S") + "-" + uuid.uuid4().hex[:6]
     await db.invoices.insert_one({"id": inv_id, "user_id": uid, "jumlah_tagihan": product["harga"],
         "status": "Unpaid", "tanggal_jatuh_tempo": (now + timedelta(days=7)).date().isoformat(),
         "deskripsi": f"Aktivasi {product['nama_produk']} ({payload.domain.strip()})",
