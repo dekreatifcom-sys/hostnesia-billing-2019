@@ -35,16 +35,24 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
         <NavLink to="/" end className={linkCls} data-testid="sidebar-beranda"><Home className="h-5 w-5" /> Beranda</NavLink>
 
-        <button
-          onClick={() => setOpen((o) => !o)}
-          data-testid="sidebar-layanan"
-          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+        <div
+          className={`flex items-center rounded-xl transition-colors ${
             layananActive ? "bg-brand-light text-brand" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
           }`}
         >
-          <Server className="h-5 w-5" /> Layanan
-          <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
-        </button>
+          <NavLink
+            to="/layanan"
+            end
+            data-testid="sidebar-layanan"
+            onClick={() => setOpen(true)}
+            className="flex flex-1 items-center gap-3 px-4 py-3 text-sm font-semibold"
+          >
+            <Server className="h-5 w-5" /> Layanan
+          </NavLink>
+          <button onClick={() => setOpen((o) => !o)} aria-label="Toggle submenu" data-testid="sidebar-layanan-toggle" className="px-3 py-3">
+            <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+          </button>
+        </div>
         {open && (
           <div className="ml-4 space-y-0.5 border-l border-slate-100 pl-3">
             <NavLink to="/layanan" end className={subCls} data-testid="sidebar-layanan-saya"><Package className="h-4 w-4" /> Layanan Saya</NavLink>

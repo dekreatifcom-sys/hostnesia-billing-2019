@@ -33,4 +33,15 @@ High-fidelity, mobile-first prototype for a modern Web Hosting Billing & Client 
 - P2: Align Billing page header with new design language (still uses blue WalletCard — intentional hero).
 
 ## Next Tasks
-- Renewal flow from an invoice; auto-debit wallet; notification click → deep link to the relevant page.
+- Renewal flow from an invoice; auto-debit wallet; notification click → deep link.
+
+### 2026-08-01 — Iteration 3 (menus & modules)
+- **Domain module**: `/domain` list + search (POST /api/domains/check) with popular TLDs & prices (GET /api/tlds); `/domain/:id` detail with 10 tabs (Overview, Nameservers, Registrar Lock, Addons, Kontak Domain, Private Nameservers, DNS Management, DNSSEC, Domain Forwarding, Kode EPP).
+- **Dashboard revamp**: removed Saldo card; saldo moved to header (desktop top-header + mobile dashboard header) with (+) top-up; added auto-rotating **banner slider** at top.
+- **Layanan submenu**: Layanan Saya (hosting) / Layanan Jasa (web, SEO, ads) / Order Layanan Baru; services now have `category` (hosting/jasa).
+- **Hosting service actions** on detail page: Login cPanel, Login Webmail, Ganti Password, Upgrade/Downgrade, Unblock IP, Minta Pembatalan (POST /api/services/{id}/action).
+- **Afiliasi** page (GET /api/affiliate): komisi, link referral, stats, riwayat.
+- **Header profile dropdown**: Detail Akun Saya, Informasi Pajak, User Management, Kontak, Keamanan Akun, Riwayat Email | Profil Kamu, Switch Account, Ganti Kata Sandi, Pengaturan Keamanan, Log Out.
+- Mobile-friendly preserved (bottom nav + FAB unchanged; Domain/Afiliasi/Jasa reachable via stat card + Profile menu).
+- Tested iteration_3: backend 34/34 pytest pass, frontend 100% desktop+mobile. Fixed sidebar "Layanan" click UX.
+- NOTE: All new modules are static prototype (SSO, actions, domain tabs, affiliate, domain-check = mock) — to be made dynamic & admin-controlled in a future admin-system phase.
