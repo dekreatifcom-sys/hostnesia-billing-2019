@@ -54,6 +54,12 @@ High-fidelity, mobile-first prototype for a modern Web Hosting Billing & Client 
 - **Domain search** relocated to Dashboard (`DomainSearchWidget`); Domain menu = list table only.
 - Verified visually (desktop 1440 + mobile 430): sidebar collapsed, full saldo-pay flow → success, VA accordion expand all correct.
 
+### 2026-08-02 — Bugfix: Login gagal ("Terjadi kesalahan. Coba lagi.")
+- **Root cause**: CORS middleware set `allow_credentials=True` together with `allow_origins=["*"]`. Response emitted `Access-Control-Allow-Origin: *` AND `Access-Control-Allow-Credentials: true` — an invalid combo per Fetch spec that browsers reject, making axios `err.response` undefined (hence the generic null-fallback error). Login worked via curl & same-origin tests but failed in the user's browser context.
+- **Fix**: `server.py` CORS → `allow_credentials=False` (app uses Bearer tokens, no cookies). Confirmed headers now return only `access-control-allow-origin: *`; cross-origin POST returns 200.
+- **UX**: `Login.jsx` now distinguishes network errors ("Tidak dapat terhubung ke server…") from auth errors.
+- Verified end-to-end in browser: login → dashboard, zero CORS/console errors.
+
 ### 2026-08-02 — Iteration 4 (checkout gateway + domain search relocation)
 - **Realistic Payment Gateway** (`CheckoutPage.jsx`): after "Lanjutkan", cart hides via smooth AnimatePresence transition → connecting loader → gateway UI with prominent Order No (`INV-YYYY-XXXX`) + total, live countdown; payment method cards (Virtual Account w/ bank picker + copyable VA number, QRIS w/ QR placeholder, E-Wallet picker); each method shows mock instructions; "Bayar Sekarang" → animated "Pembayaran Berhasil" success screen with LUNAS status + back-to-dashboard. Mobile-first, rounded, clean UI.
 - **Domain search relocated**: extracted to `DomainSearchWidget.jsx`, now rendered on Dashboard (below banner). `DomainsPage.jsx` reduced to "Domain Saya" list table only (per user revision).

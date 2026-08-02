@@ -28,8 +28,11 @@ export default function Login() {
       await login(email, password);
       navigate("/", { replace: true });
     } catch (err) {
-      setError(apiError(err.response?.data?.detail) || "Login gagal");
-      toast.error("Login gagal");
+      const msg = err.response
+        ? apiError(err.response?.data?.detail)
+        : "Tidak dapat terhubung ke server. Periksa koneksi Anda lalu coba lagi.";
+      setError(msg);
+      toast.error(err.response ? "Login gagal" : "Gagal terhubung ke server");
     } finally {
       setLoading(false);
     }
