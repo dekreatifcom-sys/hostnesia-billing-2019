@@ -1,25 +1,23 @@
 import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuickActions } from "@/context/QuickActionsContext";
 
 const slides = [
   { title: "Cek & Beli Domain Harga Murah", subtitle: "Mulai Rp15.000/tahun untuk .my.id", cta: "Cek Domain", to: "/domain", grad: "from-brand to-brand-dark" },
-  { title: "Promo WordPress Hosting", subtitle: "Beli WordPress Hosting gratis 1 domain .id", cta: "Order Sekarang", action: "order", grad: "from-indigo-600 to-brand" },
+  { title: "Promo Cloud Hosting", subtitle: "Beli hosting gratis 1 domain .id", cta: "Order Sekarang", to: "/checkout", grad: "from-indigo-600 to-brand" },
   { title: "Jasa Pembuatan Website Perusahaan", subtitle: "Website profesional mulai Rp550.000", cta: "Lihat Layanan Jasa", to: "/layanan/jasa", grad: "from-slate-800 to-brand-dark" },
 ];
 
 export default function BannerSlider() {
   const [i, setI] = useState(0);
   const navigate = useNavigate();
-  const { openForm } = useQuickActions();
 
   useEffect(() => {
     const t = setInterval(() => setI((p) => (p + 1) % slides.length), 4500);
     return () => clearInterval(t);
   }, []);
 
-  const go = (s) => (s.action ? openForm(s.action) : navigate(s.to));
+  const go = (s) => navigate(s.to);
 
   return (
     <div className="relative overflow-hidden rounded-2xl shadow-soft" data-testid="banner-slider">

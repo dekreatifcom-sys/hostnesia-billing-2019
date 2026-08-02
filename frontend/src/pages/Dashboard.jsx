@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useServices, useInvoices, useWallet, useDomains } from "@/lib/queries";
 import { useAuth } from "@/context/AuthContext";
-import { useQuickActions } from "@/context/QuickActionsContext";
 import BannerSlider from "@/components/BannerSlider";
 import ServiceListRow from "@/components/ServiceListRow";
 import NotificationBell from "@/components/NotificationBell";
@@ -34,7 +33,6 @@ function StatCard({ value, label, icon: Icon, valueClass, onClick, testid }) {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { openForm } = useQuickActions();
   const { data: services = [], isLoading: sl } = useServices();
   const { data: invoices = [] } = useInvoices();
   const { data: wallet } = useWallet();
@@ -73,7 +71,7 @@ export default function Dashboard() {
         <StatCard value={domains.length} label="Domain" icon={Globe} valueClass="text-slate-800" onClick={() => navigate("/domain")} testid="stat-domain" />
         <StatCard value={unpaid.length} label="Tagihan" icon={Receipt} valueClass="text-red-500" onClick={() => navigate("/tagihan")} testid="stat-tagihan" />
         <button
-          onClick={() => openForm("order")}
+          onClick={() => navigate("/checkout")}
           data-testid="stat-order"
           className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-brand bg-brand p-5 text-white transition-transform hover:-translate-y-0.5"
         >

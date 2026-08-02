@@ -12,6 +12,7 @@ import ServiceDetailPage from "@/pages/ServiceDetailPage";
 import DomainsPage from "@/pages/DomainsPage";
 import DomainDetailPage from "@/pages/DomainDetailPage";
 import AffiliatePage from "@/pages/AffiliatePage";
+import CheckoutPage from "@/pages/CheckoutPage";
 import BillingPage from "@/pages/BillingPage";
 import ProfilePage from "@/pages/ProfilePage";
 
@@ -37,6 +38,7 @@ function App() {
               <Route path="/tagihan" element={<BillingPage />} />
               <Route path="/profil" element={<ProfilePage />} />
             </Route>
+            <Route path="/checkout" element={<CheckoutPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
