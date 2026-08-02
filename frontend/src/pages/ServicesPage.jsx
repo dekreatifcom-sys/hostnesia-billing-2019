@@ -1,7 +1,6 @@
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useServices } from "@/lib/queries";
-import { useQuickActions } from "@/context/QuickActionsContext";
 import ServiceListRow from "@/components/ServiceListRow";
 import StatusBadge from "@/components/StatusBadge";
 import { Loader2, Plus, Server, Briefcase } from "lucide-react";
@@ -33,7 +32,6 @@ function JasaRow({ s }) {
 
 export default function ServicesPage({ category = "hosting" }) {
   const { data: all = [], isLoading } = useServices();
-  const { openForm } = useQuickActions();
   const location = useLocation();
   const list = all.filter((s) => (s.category || "hosting") === category);
 
@@ -44,13 +42,13 @@ export default function ServicesPage({ category = "hosting" }) {
           <h1 className="font-heading text-2xl font-extrabold text-slate-800">Layanan</h1>
           <p className="text-sm text-slate-400">Kelola paket hosting, VPS & jasa Anda.</p>
         </div>
-        <button
-          onClick={() => openForm("order")}
+        <a
+          href="https://hostnesia.id/layanan"
           data-testid="services-order-button"
           className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-dark"
         >
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Order Layanan Baru</span>
-        </button>
+        </a>
       </div>
 
       <div className="flex gap-2">

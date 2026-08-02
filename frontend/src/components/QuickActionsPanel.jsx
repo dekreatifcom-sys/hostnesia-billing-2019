@@ -2,7 +2,7 @@ import { PackagePlus, Globe, AtSign, FolderOpen, Database } from "lucide-react";
 import { useQuickActions } from "@/context/QuickActionsContext";
 
 const actions = [
-  { key: "order", label: "Order Layanan Baru", desc: "Native UI", icon: PackagePlus, type: "form" },
+  { key: "order", label: "Order Layanan Baru", desc: "hostnesia.id", icon: PackagePlus, type: "link", href: "https://hostnesia.id/layanan" },
   { key: "dns", label: "Kelola DNS", desc: "Native UI", icon: Globe, type: "form" },
   { key: "email", label: "Buat Akun Email", desc: "Native UI", icon: AtSign, type: "form" },
   { key: "filemanager", label: "File Manager", desc: "Deep-Link SSO", icon: FolderOpen, type: "sso" },
@@ -13,6 +13,7 @@ export default function QuickActionsPanel({ onSelect }) {
   const { openForm, runSso } = useQuickActions();
 
   const handle = (a) => {
+    if (a.type === "link") { window.location.href = a.href; return; }
     if (a.type === "form") openForm(a.key);
     else runSso(a.label);
     onSelect?.();

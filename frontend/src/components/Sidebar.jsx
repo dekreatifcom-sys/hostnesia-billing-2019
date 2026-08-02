@@ -2,14 +2,12 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Home, Server, Globe, Receipt, Users, User, Zap, ChevronDown, Package, Briefcase, PlusCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useQuickActions } from "@/context/QuickActionsContext";
 
 export default function Sidebar() {
   const { user } = useAuth();
-  const { openForm } = useQuickActions();
   const location = useLocation();
   const layananActive = location.pathname.startsWith("/layanan");
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const linkCls = ({ isActive }) =>
     `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
@@ -44,7 +42,6 @@ export default function Sidebar() {
             to="/layanan"
             end
             data-testid="sidebar-layanan"
-            onClick={() => setOpen(true)}
             className="flex flex-1 items-center gap-3 px-4 py-3 text-sm font-semibold"
           >
             <Server className="h-5 w-5" /> Layanan
@@ -57,9 +54,9 @@ export default function Sidebar() {
           <div className="ml-4 space-y-0.5 border-l border-slate-100 pl-3">
             <NavLink to="/layanan" end className={subCls} data-testid="sidebar-layanan-saya"><Package className="h-4 w-4" /> Layanan Saya</NavLink>
             <NavLink to="/layanan/jasa" className={subCls} data-testid="sidebar-layanan-jasa"><Briefcase className="h-4 w-4" /> Layanan Jasa</NavLink>
-            <button onClick={() => openForm("order")} data-testid="sidebar-order-baru" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">
+            <a href="https://hostnesia.id/layanan" data-testid="sidebar-order-baru" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">
               <PlusCircle className="h-4 w-4" /> Order Layanan Baru
-            </button>
+            </a>
           </div>
         )}
 

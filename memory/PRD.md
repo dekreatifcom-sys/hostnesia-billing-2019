@@ -46,6 +46,14 @@ High-fidelity, mobile-first prototype for a modern Web Hosting Billing & Client 
 - Tested iteration_3: backend 34/34 pytest pass, frontend 100% desktop+mobile. Fixed sidebar "Layanan" click UX.
 - NOTE: All new modules are static prototype (SSO, actions, domain tabs, affiliate, domain-check = mock) — to be made dynamic & admin-controlled in a future admin-system phase.
 
+### 2026-08-02 — Iteration 5 (payment redesign, saldo, menu & order-redirect)
+- **Payment page redesigned** (ref image): billing address card ("Alamat Penagihan" + Edit) + numbered "2 Pembayaran" section with **accordion payment methods** grouped as "Pembayaran Instan" (Saldo, Kartu, PayPal) and "Transfer Bank / QRIS · 1 Hari Kerja" (BCA/BNI/Mandiri VA + QRIS). Each row expands to reveal method details, "Penting" 24-jam notice, security line, terms + action button ("Bayar Sekarang" / "Buat Tagihan Pembayaran"). Right sticky "Daftar pesanan" summary (desktop) / moves to top (mobile). Success screen unchanged. `MethodRow` component added.
+- **Bayar dari Saldo**: wallet balance method (tag "Tercepat"), shows saldo & shortfall guard; pays instantly → success (Metode: Saldo HostNesia). Uses `useWallet`.
+- **Sidebar**: Layanan submenu now COLLAPSED by default (`open=false`, removed auto-open on Layanan click).
+- **Order Layanan Baru → external redirect** to `https://hostnesia.id/layanan` (WordPress) in Sidebar, ServicesPage button, and Quick Actions panel (no more in-app order popup). Dashboard "Order Layanan" card & promo banner still open in-app /checkout.
+- **Domain search** relocated to Dashboard (`DomainSearchWidget`); Domain menu = list table only.
+- Verified visually (desktop 1440 + mobile 430): sidebar collapsed, full saldo-pay flow → success, VA accordion expand all correct.
+
 ### 2026-08-02 — Iteration 4 (checkout gateway + domain search relocation)
 - **Realistic Payment Gateway** (`CheckoutPage.jsx`): after "Lanjutkan", cart hides via smooth AnimatePresence transition → connecting loader → gateway UI with prominent Order No (`INV-YYYY-XXXX`) + total, live countdown; payment method cards (Virtual Account w/ bank picker + copyable VA number, QRIS w/ QR placeholder, E-Wallet picker); each method shows mock instructions; "Bayar Sekarang" → animated "Pembayaran Berhasil" success screen with LUNAS status + back-to-dashboard. Mobile-first, rounded, clean UI.
 - **Domain search relocated**: extracted to `DomainSearchWidget.jsx`, now rendered on Dashboard (below banner). `DomainsPage.jsx` reduced to "Domain Saya" list table only (per user revision).
