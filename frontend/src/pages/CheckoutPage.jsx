@@ -6,7 +6,8 @@ import { idr } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import {
   Server, Check, Globe, Tag, ShieldCheck, Zap, DatabaseBackup, MapPin,
-  ArrowLeft, ChevronDown, Loader2, CreditCard, Lock, CheckCircle2, Search,
+  ArrowLeft, Loader2, Lock, CheckCircle2, Search,
+  Building2, QrCode, Wallet, Copy, Clock, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 const CYCLES = [
@@ -25,6 +26,23 @@ const LOCATIONS = [
 ];
 const DOMAIN_PRICE = 199900;
 const COUPON_CODE = "HOSTNESIA10";
+
+const PAY_METHODS = [
+  { id: "va", label: "Virtual Account", desc: "BCA, Mandiri, BNI, BRI", icon: Building2 },
+  { id: "qris", label: "QRIS", desc: "Pindai dari semua e-wallet & m-banking", icon: QrCode },
+  { id: "ewallet", label: "E-Wallet", desc: "GoPay, OVO, DANA, ShopeePay", icon: Wallet },
+];
+const VA_BANKS = [
+  { id: "bca", label: "BCA", va: "8808 1234 5678 9012" },
+  { id: "mandiri", label: "Mandiri", va: "8950 0812 3456 7890" },
+  { id: "bni", label: "BNI", va: "8810 5566 7788 9900" },
+];
+const EWALLETS = [
+  { id: "gopay", label: "GoPay" },
+  { id: "ovo", label: "OVO" },
+  { id: "dana", label: "DANA" },
+  { id: "shopeepay", label: "ShopeePay" },
+];
 
 function SummaryBody({ calc, cycle, domain, freeDomain, addons, showCoupon, setShowCoupon, coupon, setCoupon, applied, applyCoupon }) {
   return (
@@ -90,6 +108,13 @@ export default function CheckoutPage() {
   const [coupon, setCoupon] = useState("");
   const [applied, setApplied] = useState(false);
   const [paying, setPaying] = useState(true);
+  const [payMethod, setPayMethod] = useState(null);
+  const [vaBank, setVaBank] = useState("bca");
+  const [ewallet, setEwallet] = useState("gopay");
+  const [paid, setPaid] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(15 * 60);
+
+  const orderNo = useMemo(() => `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`, []);
 
   const cycle = CYCLES.find((c) => c.id === cycleId);
   const freeDomain = cycle.months >= 12 && !!domain;
@@ -117,6 +142,16 @@ export default function CheckoutPage() {
       return () => clearTimeout(t);
     }
   }, [stage]);
+
+  useEffect(() => {
+    if (stage === "payment" && !paying && !paid) {
+      const t = setInterval(() => setSecondsLeft((s) => (s > 0 ? s - 1 : 0)), 1000);
+      return () => clearInterval(t);
+    }
+  }, [stage, paying, paid]);
+
+  const countdown = `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
+  const copy = (txt) => { navigator.clipboard?.writeText(txt.replace(/\s/g, "")); toast.success("Nomor disalin"); };
 
   const summaryProps = { calc, cycle, domain, freeDomain, addons, showCoupon, setShowCoupon, coupon, setCoupon, applied, applyCoupon };
 
@@ -262,35 +297,130 @@ export default function CheckoutPage() {
           <motion.main
             key="payment"
             initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-            className="mx-auto flex max-w-md flex-col items-center px-4 py-16"
+            className="mx-auto flex max-w-md flex-col px-4 py-8"
             data-testid="checkout-payment"
           >
-            <div className="w-full rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-soft">
-              {paying ? (
-                <>
-                  <Loader2 className="mx-auto h-12 w-12 animate-spin text-brand" />
-                  <h2 className="mt-5 font-heading text-xl font-bold text-slate-800">Menghubungkan Gerbang Pembayaran</h2>
-                  <p className="mt-1 text-sm text-slate-400">Mengarahkan Anda ke pembayaran aman…</p>
-                </>
-              ) : (
-                <>
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand"><CreditCard className="h-7 w-7" /></div>
-                  <h2 className="mt-4 font-heading text-xl font-bold text-slate-800">Gerbang Pembayaran</h2>
-                  <p className="mt-1 text-sm text-slate-400">Selesaikan pembayaran untuk mengaktifkan layanan.</p>
-                  <div className="mt-5 rounded-xl bg-slate-50 p-4">
-                    <p className="text-sm text-slate-500">Total Pembayaran</p>
-                    <p className="font-heading text-3xl font-extrabold text-brand">{idr(calc.total)}</p>
+            {paying ? (
+              <div className="mt-8 w-full rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-soft">
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-brand" />
+                <h2 className="mt-5 font-heading text-xl font-bold text-slate-800">Menghubungkan Gerbang Pembayaran</h2>
+                <p className="mt-1 text-sm text-slate-400">Mengarahkan Anda ke pembayaran aman…</p>
+              </div>
+            ) : paid ? (
+              <div className="mt-4 w-full rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-soft" data-testid="payment-success">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                  className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                  <CheckCircle2 className="h-9 w-9" />
+                </motion.div>
+                <h2 className="mt-5 font-heading text-2xl font-extrabold text-slate-800">Pembayaran Berhasil</h2>
+                <p className="mt-1 text-sm text-slate-400">Layanan Anda sedang diaktifkan. Terima kasih!</p>
+                <div className="mt-5 space-y-2 rounded-xl bg-slate-50 p-4 text-left text-sm">
+                  <div className="flex justify-between"><span className="text-slate-400">No. Pesanan</span><span className="font-semibold text-slate-700">{orderNo}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Metode</span><span className="font-semibold text-slate-700">{PAY_METHODS.find((m) => m.id === payMethod)?.label}</span></div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2"><span className="text-slate-400">Total Dibayar</span><span className="font-heading text-base font-extrabold text-emerald-600">{idr(calc.total)}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-slate-400">Status</span><span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">LUNAS</span></div>
+                </div>
+                <button onClick={() => navigate("/")} data-testid="success-back-dashboard"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-4 text-base font-bold text-white transition-colors hover:bg-brand-dark">
+                  Kembali ke Dashboard
+                </button>
+              </div>
+            ) : (
+              <div className="w-full space-y-4" data-testid="payment-gateway">
+                {/* Order header */}
+                <div className="rounded-2xl bg-gradient-to-br from-brand to-brand-dark p-5 text-white shadow-card">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-white/70">No. Pesanan</span>
+                    <span className="font-mono text-sm font-bold">{orderNo}</span>
                   </div>
-                  <button onClick={() => { toast.success("Pembayaran berhasil! Layanan Anda sedang diaktifkan."); navigate("/"); }} data-testid="pay-now"
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-4 text-base font-bold text-white transition-colors hover:bg-brand-dark">
-                    <Lock className="h-4 w-4" /> Bayar Sekarang
-                  </button>
-                  <button onClick={() => setStage("cart")} data-testid="payment-back" className="mt-3 text-sm font-semibold text-slate-500 hover:text-brand">
-                    Kembali ke keranjang
-                  </button>
-                </>
-              )}
-            </div>
+                  <p className="mt-3 text-xs font-medium text-white/70">Total Tagihan</p>
+                  <p className="font-heading text-3xl font-extrabold" data-testid="gateway-total">{idr(calc.total)}</p>
+                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1 text-xs font-semibold">
+                    <Clock className="h-3.5 w-3.5" /> Bayar dalam <span className="font-mono">{countdown}</span>
+                  </div>
+                </div>
+
+                {!payMethod ? (
+                  <div className="space-y-2.5">
+                    <p className="px-1 text-sm font-bold text-slate-800">Pilih Metode Pembayaran</p>
+                    {PAY_METHODS.map((m) => (
+                      <button key={m.id} onClick={() => setPayMethod(m.id)} data-testid={`pay-method-${m.id}`}
+                        className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition-all hover:border-brand hover:shadow-card">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-light text-brand"><m.icon className="h-5 w-5" /></span>
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-slate-800">{m.label}</p>
+                          <p className="text-xs text-slate-400">{m.desc}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                      </button>
+                    ))}
+                    <button onClick={() => setStage("cart")} data-testid="payment-back" className="mt-2 w-full text-center text-sm font-semibold text-slate-500 hover:text-brand">
+                      Kembali ke keranjang
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <button onClick={() => setPayMethod(null)} data-testid="method-back" className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-brand">
+                      <ChevronLeft className="h-4 w-4" /> Ganti metode
+                    </button>
+
+                    {payMethod === "va" && (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft" data-testid="va-instructions">
+                        <p className="text-sm font-bold text-slate-800">Pilih Bank</p>
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          {VA_BANKS.map((b) => (
+                            <button key={b.id} onClick={() => setVaBank(b.id)} data-testid={`va-bank-${b.id}`}
+                              className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${vaBank === b.id ? "border-brand bg-brand-light text-brand" : "border-slate-200 text-slate-600"}`}>
+                              {b.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                          <p className="text-xs text-slate-400">Nomor Virtual Account</p>
+                          <div className="mt-1 flex items-center justify-between">
+                            <span className="font-mono text-lg font-extrabold tracking-wide text-slate-800">{VA_BANKS.find((b) => b.id === vaBank)?.va}</span>
+                            <button onClick={() => copy(VA_BANKS.find((b) => b.id === vaBank)?.va)} data-testid="va-copy" className="inline-flex items-center gap-1 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-white">
+                              <Copy className="h-3.5 w-3.5" /> Salin
+                            </button>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-xs leading-relaxed text-slate-400">Transfer tepat sejumlah <b className="text-slate-600">{idr(calc.total)}</b> ke nomor VA di atas melalui ATM / m-banking {VA_BANKS.find((b) => b.id === vaBank)?.label}. Pembayaran diverifikasi otomatis.</p>
+                      </div>
+                    )}
+
+                    {payMethod === "qris" && (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-soft" data-testid="qris-instructions">
+                        <p className="text-sm font-bold text-slate-800">Pindai QRIS</p>
+                        <div className="mx-auto mt-4 flex h-48 w-48 items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
+                          <QrCode className="h-28 w-28 text-slate-800" strokeWidth={1} />
+                        </div>
+                        <p className="mt-4 text-xs leading-relaxed text-slate-400">Buka aplikasi e-wallet atau m-banking Anda, pilih menu <b className="text-slate-600">Pindai QR</b>, lalu bayar sejumlah <b className="text-slate-600">{idr(calc.total)}</b>.</p>
+                      </div>
+                    )}
+
+                    {payMethod === "ewallet" && (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft" data-testid="ewallet-instructions">
+                        <p className="text-sm font-bold text-slate-800">Pilih E-Wallet</p>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          {EWALLETS.map((w) => (
+                            <button key={w.id} onClick={() => setEwallet(w.id)} data-testid={`ewallet-${w.id}`}
+                              className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${ewallet === w.id ? "border-brand bg-brand-light text-brand" : "border-slate-200 text-slate-600"}`}>
+                              {w.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-4 text-xs leading-relaxed text-slate-400">Anda akan diarahkan ke aplikasi <b className="text-slate-600">{EWALLETS.find((w) => w.id === ewallet)?.label}</b> untuk menyetujui pembayaran sejumlah <b className="text-slate-600">{idr(calc.total)}</b>.</p>
+                      </div>
+                    )}
+
+                    <button onClick={() => setPaid(true)} data-testid="pay-now"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-4 text-base font-bold text-white transition-colors hover:bg-brand-dark">
+                      <Lock className="h-4 w-4" /> Bayar Sekarang {idr(calc.total)}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </motion.main>
         )}
       </AnimatePresence>

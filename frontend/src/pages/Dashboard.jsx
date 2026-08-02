@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useServices, useInvoices, useWallet, useDomains } from "@/lib/queries";
 import { useAuth } from "@/context/AuthContext";
 import BannerSlider from "@/components/BannerSlider";
+import DomainSearchWidget from "@/components/DomainSearchWidget";
 import ServiceListRow from "@/components/ServiceListRow";
 import NotificationBell from "@/components/NotificationBell";
 import TopupDialog from "@/components/TopupDialog";
@@ -65,6 +66,8 @@ export default function Dashboard() {
       </div>
 
       <BannerSlider />
+
+      <DomainSearchWidget />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard value={active.length} label="Layanan" icon={Server} valueClass="text-brand" onClick={() => navigate("/layanan")} testid="stat-layanan" />

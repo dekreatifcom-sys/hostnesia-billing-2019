@@ -45,3 +45,8 @@ High-fidelity, mobile-first prototype for a modern Web Hosting Billing & Client 
 - Mobile-friendly preserved (bottom nav + FAB unchanged; Domain/Afiliasi/Jasa reachable via stat card + Profile menu).
 - Tested iteration_3: backend 34/34 pytest pass, frontend 100% desktop+mobile. Fixed sidebar "Layanan" click UX.
 - NOTE: All new modules are static prototype (SSO, actions, domain tabs, affiliate, domain-check = mock) — to be made dynamic & admin-controlled in a future admin-system phase.
+
+### 2026-08-02 — Iteration 4 (checkout gateway + domain search relocation)
+- **Realistic Payment Gateway** (`CheckoutPage.jsx`): after "Lanjutkan", cart hides via smooth AnimatePresence transition → connecting loader → gateway UI with prominent Order No (`INV-YYYY-XXXX`) + total, live countdown; payment method cards (Virtual Account w/ bank picker + copyable VA number, QRIS w/ QR placeholder, E-Wallet picker); each method shows mock instructions; "Bayar Sekarang" → animated "Pembayaran Berhasil" success screen with LUNAS status + back-to-dashboard. Mobile-first, rounded, clean UI.
+- **Domain search relocated**: extracted to `DomainSearchWidget.jsx`, now rendered on Dashboard (below banner). `DomainsPage.jsx` reduced to "Domain Saya" list table only (per user revision).
+- Verified via screenshot flow: dashboard widget + full VA payment → success path all render correctly on mobile (430px).
